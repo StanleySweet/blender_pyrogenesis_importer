@@ -405,18 +405,15 @@ class ImportPyrogenesisActor(Operator, ImportHelper):
         import random
         import math
         meshprops = []
-        props = []
-        textures = []
+        imported_props = []
+        imported_textures = []
         imported_objects = []
         material_object = None
         rootObject = None
-        material_type = None
+        material_type = 'default.xml'
         for group in root:
             if group.tag == 'material':
                 material_type = group.text 
-
-        if material_type is not None:
-            material_type =  'default.xml'
 
         for group in root:
             if group.tag == 'material':
@@ -557,7 +554,7 @@ class ImportPyrogenesisActor(Operator, ImportHelper):
                     print("=======================================================")
                     if(len(child) > 0):
                         for texture in child:
-                            textures.append(texture)
+                            imported_textures.append(texture)
 
 
 
@@ -589,10 +586,10 @@ class ImportPyrogenesisActor(Operator, ImportHelper):
 
 
                     for prop in child:
-                        props.append(prop)
+                        imported_props.append(prop)
 
         mat_textures = []
-        for texture in textures:
+        for texture in imported_textures:
             print("Loading " + texture.attrib['name'] + ": " + self.currentPath + 'textures/skins/' + texture.attrib['file'])
             bpy.data.images.load(self.currentPath + 'textures/skins/' + texture.attrib['file'], check_existing=True)
             mat_textures.append(texture.attrib['name'] + '|' + self.currentPath + 'textures/skins/' + texture.attrib['file'])
@@ -610,7 +607,7 @@ class ImportPyrogenesisActor(Operator, ImportHelper):
 
                 self.assign_material_to_object(obj, material_object)
 
-        for prop in props:
+        for prop in imported_props:
             print("=======================================================")
             print("============== Gathering Props ========================")
             print("=======================================================")
