@@ -21,7 +21,7 @@
 bl_info = {
     'name': 'Blender Pyrogenesis Importer',
     'author': 'Stanislas Daniel Claude Dolcini',
-    'version': (1, 3, 0),
+    'version': (1, 2, 0),
     'blender':  (2, 80, 0),
     'location': 'File > Import-Export',
     'description': 'Import ',
@@ -407,14 +407,17 @@ class ImportPyrogenesisActor(Operator, ImportHelper):
         meshprops = []
         props = []
         textures = []
+        imported_objects = []
         material_object = None
         rootObject = None
-        material = None
+        material_type = None
         for group in root:
             if group.tag == 'material':
-                material = group.text
+                material_type = group.text 
 
-        imported_objects = []
+        if material_type is not None:
+            material_type =  'default.xml'
+
         for group in root:
             if group.tag == 'material':
                 continue
@@ -595,7 +598,7 @@ class ImportPyrogenesisActor(Operator, ImportHelper):
             mat_textures.append(texture.attrib['name'] + '|' + self.currentPath + 'textures/skins/' + texture.attrib['file'])
         
         if len(mat_textures):
-            material_object = self.create_new_material(mat_textures, material)
+            material_object = self.create_new_material(mat_textures, material_type)
 
             for obj in imported_objects:
                 if ('prop-' in obj.name or 'prop_' in obj.name) and not hasattr(obj, 'type'):
