@@ -173,19 +173,47 @@ class ImportPyrogenesisActor(Operator, ImportHelper):
         obj.parent = parent
 
     def create_new_material(self, textures):
-        import os
-        mname = os.path.basename(textures[0])
+        mname = None
+        for texture in textures:
+            if texture.split('|')[0] == 'baseTex':
+                mname = os.path.basename(texture.split('|')[1])
+                break
+        
+        if mname is None:
+            mname = os.path.basename(textures[0])
+
         mat = bpy.data.materials.get(mname) or bpy.data.materials.new(name= mname)
         mat.use_nodes = True
         bsdf = mat.node_tree.nodes["Principled BSDF"]
 
 
         for texture in textures:
-            fname = os.path.basename(texture)
+            fname = os.path.basename(texture.split('|')[1])
             texImage = mat.node_tree.nodes.new('ShaderNodeTexImage')
+            if fname not in bpy.data.images:
+                continue
             texImage.image = bpy.data.images[fname]
-            mat.node_tree.links.new(bsdf.inputs['Base Color'], texImage.outputs['Color'])
-            break
+            if texture.split('|')[0] == 'baseTex':
+                mat.node_tree.links.new(bsdf.inputs['Base Color'], texImage.outputs['Color'])
+                # TODO: playercolor, alpha
+                continue
+            
+            if texture.split('|')[0] == 'normTex':
+                texImage.image.colorspace_settings.name='Non-Color'
+                normal_node = mat.node_tree.nodes.new('ShaderNodeNormalMap')
+                mat.node_tree.links.new(normal_node.inputs['Color'], texImage.outputs['Color'])                
+                mat.node_tree.links.new(bsdf.inputs['Normal'], normal_node.outputs['Normal'])
+                continue
+
+            
+            if texture.split('|')[0] == 'specTex':
+                mat.node_tree.links.new(bsdf.inputs['Specular'], texImage.outputs['Color'])
+                continue
+            
+         
+            
+            
+            
 
         return mat.name
     def assign_material_to_object(self, ob, material_name):
@@ -214,8 +242,9 @@ class ImportPyrogenesisActor(Operator, ImportHelper):
 
 
         return {'FINISHED'}
-    def create_custom_mesh(self, objname, px, py, pz):
+    def create_custom_mesh(self, objname, px, py, pz, width, depth):
 
+    
         # Define arrays for holding data
         myvertex = []
         myfaces = []
@@ -223,19 +252,19 @@ class ImportPyrogenesisActor(Operator, ImportHelper):
         # Create all Vertices
 
         # vertex 0
-        mypoint = [(-10.0, -10.0, 0.0)]
+        mypoint = [(-width/2, -depth/2, 0.01)]
         myvertex.extend(mypoint)
 
         # vertex 1
-        mypoint = [(10.0, -10.0, 0.0)]
+        mypoint = [(width/2, -depth/2, 0.01)]
         myvertex.extend(mypoint)
 
         # vertex 2
-        mypoint = [(-10.0, 10.0, 0.0)]
+        mypoint = [(-width/2, depth/2, 0.01)]
         myvertex.extend(mypoint)
 
         # vertex 3
-        mypoint = [(10.0, 10.0, 0.0)]
+        mypoint = [(width/2, depth/2, 0.01)]
         myvertex.extend(mypoint)
 
         # -------------------------------------
@@ -282,7 +311,25 @@ class ImportPyrogenesisActor(Operator, ImportHelper):
         return self.get_element_from_variant(root, 'mesh')
 
     def get_textures_from_variant(self, root):
-        return self.get_element_from_variant(root, 'textures')
+        import xml.etree.ElementTree as ET
+        child_textures = None
+        for child in root:
+            if child.tag == 'textures':
+                child_textures = child
+                
+        if 'file' in root.attrib is not None:
+            variantParent = ET.parse(self.currentPath + 'variants/' +  root.attrib['file']).getroot()
+            parent_textures = self.get_textures_from_variant(variantParent)
+            if parent_textures is not None and child_textures is not None:
+                for texture in child_textures:
+                    parent_textures.append(texture)
+                return parent_textures
+            else:
+                return child_textures
+    
+    
+        return child_textures
+    
 
     def get_props_from_variant(self, root):
         import xml.etree.ElementTree as ET
@@ -320,6 +367,7 @@ class ImportPyrogenesisActor(Operator, ImportHelper):
         import math
         meshprops = []
         props = []
+        textures = []
         material_object = None
         rootObject = None
         material = None
@@ -358,7 +406,7 @@ class ImportPyrogenesisActor(Operator, ImportHelper):
                     if variant_parent_textures is not None:
                         variant.append(variant_parent_textures)
                 elif variant_parent_textures is not None:
-                    variant_tags = [texture.attrib['name'] for texture in variant['textures']]
+                    variant_tags = [texture.attrib['name'] for texture in variant.find('textures')]
                     for texture in variant_parent_textures:
                         if texture is not None and texture.attrib['name'] not in variant_tags:
                             variant['textures'].append(texture)
@@ -367,7 +415,7 @@ class ImportPyrogenesisActor(Operator, ImportHelper):
                 if 'props' not in present_tags and variant_parent_props is not None:
                     variant.append(variant_parent_props)
                 elif variant_parent_props is not None:
-                    variant_tags = [prop.attrib['attachpoint'] for prop in variant['props']]
+                    variant_tags = [prop.attrib['attachpoint'] for prop in variant.find('props')]
                     for prop in variant_parent_props:
                         if prop is not None and prop.attrib['attachpoint'] not in variant_tags:
                             variant['props'].append(prop)
@@ -397,13 +445,13 @@ class ImportPyrogenesisActor(Operator, ImportHelper):
                             bpy.ops.wm.collada_import(filepath=(self.currentPath + 'meshes/' + child.text), import_units=True)
                     else:
                         bpy.ops.object.select_all(action='DESELECT')
-                        decal = self.create_custom_mesh("Decal", 0, 0, 0)
+                        decal = self.create_custom_mesh("Decal", float(child.attrib['offsetx']), float(child.attrib['offsetz']), 0, float(child.attrib['width']), float(child.attrib['depth']))
                         decal.select_set(True)
                         bpy.context.view_layer.objects.active = decal
                         bpy.ops.object.mode_set(mode='EDIT')
-                        bpy.ops.uv.unwrap()
+                        bpy.ops.uv.reset()
                         bpy.ops.object.mode_set(mode='OBJECT')
-                        decal.rotation_euler = (0,0,1.5708)
+                        decal.rotation_euler = (0,0, math.radians(float(child.attrib['angle'])))
 
                     new_current_objects = [object for object in bpy.context.scene.objects]
                     # Select those objects
@@ -467,14 +515,7 @@ class ImportPyrogenesisActor(Operator, ImportHelper):
                     print("=======================================================")
                     if(len(child) > 0):
                         for texture in child:
-                            print("Loading " + texture.attrib['name'] + ": " + self.currentPath + 'textures/skins/' + texture.attrib['file'])
-                            bpy.data.images.load(self.currentPath + 'textures/skins/' + texture.attrib['file'], check_existing=True)
-
-
-                        material_object = self.create_new_material([self.currentPath + 'textures/skins/' + texture.attrib['file'] for texture in child])
-
-                        # if rootObj is not None:
-                        #     self.assign_material_to_object(rootObj, mname)
+                            textures.append(texture)
 
 
 
@@ -509,6 +550,13 @@ class ImportPyrogenesisActor(Operator, ImportHelper):
                         props.append(prop)
 
 
+        for texture in textures:
+            print("Loading " + texture.attrib['name'] + ": " + self.currentPath + 'textures/skins/' + texture.attrib['file'])
+            bpy.data.images.load(self.currentPath + 'textures/skins/' + texture.attrib['file'], check_existing=True)
+            material_object = self.create_new_material([((texture.attrib['name'] if 'name' in texture.attrib else ' ') + '|' + (self.currentPath + 'textures/skins/' + texture.attrib['file'])) for texture in textures])
+
+
+
         for obj in imported_objects:
             if ('prop-' in obj.name or 'prop_' in obj.name) and not hasattr(obj, 'type'):
                 continue
@@ -523,6 +571,7 @@ class ImportPyrogenesisActor(Operator, ImportHelper):
             print("=======================================================")
             print("============== Gathering Props ========================")
             print("=======================================================")
+            print('Loading ' + self.currentPath + 'actors/' +  prop.attrib['actor'] + '.')
             proproot = ET.parse(self.currentPath + 'actors/' +  prop.attrib['actor']).getroot()
             if finalprops is None or len(finalprops) <= 0:
                 self.parse_actor(proproot, prop.attrib['attachpoint'], meshprops, rootObject, propDepth + 1)
