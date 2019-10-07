@@ -180,18 +180,24 @@ class ImportPyrogenesisActor(Operator, ImportHelper):
                 break
         
         if mname is None:
-            mname = os.path.basename(textures[0])
+            mname = os.path.basename(textures[0].split('|')[1])
 
-        mat = bpy.data.materials.get(mname) or bpy.data.materials.new(name= mname)
+
+        if (bpy.data.materials.get(mname) is not None):
+            return mname
+
+        mat = bpy.data.materials.new(name= mname)
         mat.use_nodes = True
         bsdf = mat.node_tree.nodes["Principled BSDF"]
 
 
         for texture in textures:
             fname = os.path.basename(texture.split('|')[1])
-            texImage = mat.node_tree.nodes.new('ShaderNodeTexImage')
+            print(fname)
             if fname not in bpy.data.images:
                 continue
+               
+            texImage = mat.node_tree.nodes.new('ShaderNodeTexImage')
             texImage.image = bpy.data.images[fname]
             if texture.split('|')[0] == 'baseTex':
                 mat.node_tree.links.new(bsdf.inputs['Base Color'], texImage.outputs['Color'])
@@ -549,23 +555,24 @@ class ImportPyrogenesisActor(Operator, ImportHelper):
                     for prop in child:
                         props.append(prop)
 
-
+        mat_textures = []
         for texture in textures:
             print("Loading " + texture.attrib['name'] + ": " + self.currentPath + 'textures/skins/' + texture.attrib['file'])
             bpy.data.images.load(self.currentPath + 'textures/skins/' + texture.attrib['file'], check_existing=True)
-            material_object = self.create_new_material([((texture.attrib['name'] if 'name' in texture.attrib else ' ') + '|' + (self.currentPath + 'textures/skins/' + texture.attrib['file'])) for texture in textures])
+            mat_textures.append(texture.attrib['name'] + '|' + self.currentPath + 'textures/skins/' + texture.attrib['file'])
+        
+        if len(mat_textures):
+            material_object = self.create_new_material(mat_textures)
 
+            for obj in imported_objects:
+                if ('prop-' in obj.name or 'prop_' in obj.name) and not hasattr(obj, 'type'):
+                    continue
+                if hasattr(obj, 'type') and obj.type == 'EMPTY':
+                    continue
+                if hasattr(obj, 'type') and obj.type == 'ARMATURE':
+                    continue
 
-
-        for obj in imported_objects:
-            if ('prop-' in obj.name or 'prop_' in obj.name) and not hasattr(obj, 'type'):
-                continue
-            if hasattr(obj, 'type') and obj.type == 'EMPTY':
-                continue
-            if hasattr(obj, 'type') and obj.type == 'ARMATURE':
-                continue
-
-            self.assign_material_to_object(obj, material_object)
+                self.assign_material_to_object(obj, material_object)
 
         for prop in props:
             print("=======================================================")
