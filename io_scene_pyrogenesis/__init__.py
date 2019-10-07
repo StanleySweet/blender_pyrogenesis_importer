@@ -172,7 +172,7 @@ class ImportPyrogenesisActor(Operator, ImportHelper):
         constraint2.target = parent
         obj.parent = parent
 
-    def create_new_material(self, textures):
+    def create_new_material(self, textures, material):
         mname = None
         for texture in textures:
             if texture.split('|')[0] == 'baseTex':
@@ -201,13 +201,46 @@ class ImportPyrogenesisActor(Operator, ImportHelper):
             texImage.image = bpy.data.images[fname]
             if texture.split('|')[0] == 'baseTex':
                 mat.node_tree.links.new(bsdf.inputs['Base Color'], texImage.outputs['Color'])
-                # TODO: playercolor, alpha
+                
+                if 'player_trans' in material:
+                    color_node = mat.node_tree.nodes.new('ShaderNodeRGB')
+                    color_node.outputs[0].default_value = (1, 0.213477, 0.0543914, 1)
+                    multiply_node = mat.node_tree.nodes.new('ShaderNodeMixRGB')
+                    multiply_node.blend_type = 'MULTIPLY'
+                    invert_node = mat.node_tree.nodes.new('ShaderNodeInvert')
+                    mat.node_tree.links.new(invert_node.inputs['Color'], texImage.outputs['Alpha'])
+                    mat.node_tree.links.new(multiply_node.inputs[1], texImage.outputs['Color'])
+                    mat.node_tree.links.new(multiply_node.inputs[2], color_node.outputs['Color'])
+                    mat.node_tree.links.new(multiply_node.inputs[0], invert_node.outputs['Color'])
+                    mat.node_tree.links.new(bsdf.inputs['Base Color'], multiply_node.outputs['Color'])
+                    
+                elif 'basic_trans' in material:
+                    mix_shader_node = mat.node_tree.nodes.new('ShaderNodeMixShader')
+                    transparent_node = mat.node_tree.nodes.new('ShaderNodeBsdfTransparent')
+                    mat.node_tree.links.new(mix_shader_node.inputs[0], texImage.outputs['Alpha'])
+                    mat.node_tree.links.new(mix_shader_node.inputs[2], bsdf.outputs['BSDF'])
+                    mat.node_tree.links.new(mix_shader_node.inputs[1], transparent_node.outputs['BSDF'])
+                    
+                    output_node = mat.node_tree.nodes.get("Material Output")
+                    mat.node_tree.links.new(output_node.inputs['Surface'], mix_shader_node.outputs['Shader'])
+                    mat.blend_method = 'CLIP'
+                    
                 continue
             
             if texture.split('|')[0] == 'normTex':
                 texImage.image.colorspace_settings.name='Non-Color'
                 normal_node = mat.node_tree.nodes.new('ShaderNodeNormalMap')
-                mat.node_tree.links.new(normal_node.inputs['Color'], texImage.outputs['Color'])                
+                separate_node = mat.node_tree.nodes.new('ShaderNodeSeparateXYZ')
+                invert_node = mat.node_tree.nodes.new('ShaderNodeInvert')
+                join_node = mat.node_tree.nodes.new('ShaderNodeCombineXYZ')
+                
+                mat.node_tree.links.new(separate_node.inputs['Vector'], texImage.outputs['Color'])
+                #Direct X normals need to have their Y channel inverted for OpenGL
+                mat.node_tree.links.new(invert_node.inputs['Color'], separate_node.outputs['Y'])
+                mat.node_tree.links.new(join_node.inputs['X'], separate_node.outputs['X'])       
+                mat.node_tree.links.new(join_node.inputs['Z'], separate_node.outputs['Z'])       
+                mat.node_tree.links.new(join_node.inputs['Y'], invert_node.outputs['Color'])   
+                mat.node_tree.links.new(normal_node.inputs['Color'], join_node.outputs['Vector'])       
                 mat.node_tree.links.new(bsdf.inputs['Normal'], normal_node.outputs['Normal'])
                 continue
 
@@ -562,7 +595,7 @@ class ImportPyrogenesisActor(Operator, ImportHelper):
             mat_textures.append(texture.attrib['name'] + '|' + self.currentPath + 'textures/skins/' + texture.attrib['file'])
         
         if len(mat_textures):
-            material_object = self.create_new_material(mat_textures)
+            material_object = self.create_new_material(mat_textures, material)
 
             for obj in imported_objects:
                 if ('prop-' in obj.name or 'prop_' in obj.name) and not hasattr(obj, 'type'):
