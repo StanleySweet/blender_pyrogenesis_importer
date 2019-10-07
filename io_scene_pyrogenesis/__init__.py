@@ -297,7 +297,7 @@ class ImportPyrogenesisActor(Operator, ImportHelper):
         if 'file' in root.attrib is not None:
             variantParent = ET.parse(self.currentPath + 'variants/' +  root.attrib['file']).getroot()
             parentProps = self.get_props_from_variant(variantParent)
-            if parentProps is not None:x
+            if parentProps is not None and childProps is not None:
                 for prop in childProps:
                     parentProps.append(prop)
                 return parentProps
@@ -353,15 +353,28 @@ class ImportPyrogenesisActor(Operator, ImportHelper):
                     if mesh_child is not None:
                         variant.append(mesh_child)
 
+                variant_parent_textures = self.get_textures_from_variant(variantParent)
                 if 'textures' not in present_tags:
-                    mesh_child = self.get_textures_from_variant(variantParent)
-                    if mesh_child is not None:
-                        variant.append(mesh_child)
+                    if variant_parent_textures is not None:
+                        variant.append(variant_parent_textures)
+                elif variant_parent_textures is not None:
+                    variant_tags = [texture.attrib['name'] for texture in variant['textures']]
+                    for texture in variant_parent_textures:
+                        if texture is not None and texture.attrib['name'] not in variant_tags:
+                            variant['textures'].append(texture)
 
-                if 'props' not in present_tags:
-                    mesh_child = self.get_props_from_variant(variant)
-                    if mesh_child is not None:
-                        variant.append(mesh_child)
+                variant_parent_props = self.get_props_from_variant(variant)
+                if 'props' not in present_tags and variant_parent_props is not None:
+                    variant.append(variant_parent_props)
+                elif variant_parent_props is not None:
+                    variant_tags = [prop.attrib['attachpoint'] for prop in variant['props']]
+                    for prop in variant_parent_props:
+                        if prop is not None and prop.attrib['attachpoint'] not in variant_tags:
+                            variant['props'].append(prop)
+                    
+                    
+                    
+                    
 
 
             for child in variant:
@@ -379,6 +392,8 @@ class ImportPyrogenesisActor(Operator, ImportHelper):
                     # Import the new objects
                     if child.tag == "mesh":
                         with HiddenPrints():
+                            fixer = MaxColladaFixer(self.currentPath + 'meshes/' + child.text)
+                            fixer.execute()
                             bpy.ops.wm.collada_import(filepath=(self.currentPath + 'meshes/' + child.text), import_units=True)
                     else:
                         bpy.ops.object.select_all(action='DESELECT')
@@ -513,6 +528,78 @@ class ImportPyrogenesisActor(Operator, ImportHelper):
                 self.parse_actor(proproot, prop.attrib['attachpoint'], meshprops, rootObject, propDepth + 1)
             else:
                 self.parse_actor(proproot, prop.attrib['attachpoint'], finalprops, rootObject, propDepth + 1)
+
+class MaxColladaFixer:
+    file_path = None
+    collada_prefix = '{http://www.collada.org/2005/11/COLLADASchema}'
+    
+    def sortchildrenby(self, parent):
+        parent[:] = sorted(parent, key=lambda child: child.tag)
+
+    
+    def indent(self, elem, level=0):
+        i = "\n" + level*"  "
+        if len(elem):
+            if not elem.text or not elem.text.strip():
+                elem.text = i + "  "
+            if not elem.tail or not elem.tail.strip():
+                elem.tail = i
+            for elem in elem:
+                self.indent(elem, level+1)
+            if not elem.tail or not elem.tail.strip():
+                elem.tail = i
+        else:
+            if level and (not elem.tail or not elem.tail.strip()):
+                elem.tail = i
+    
+    def __init__(self, file_path=None):
+        self.file_path = file_path
+
+    def execute(self):
+        import xml.etree.ElementTree as ET   
+        from datetime import date
+        
+        tree = ET.parse(self.file_path)
+        ET.register_namespace("", "http://www.collada.org/2005/11/COLLADASchema")
+        root = tree.getroot()
+        new_elements = []
+        
+        for child in root:
+            if child.tag == self.collada_prefix + 'library_images':
+                root.remove(child)
+                element = ET.Element(self.collada_prefix + 'library_images')
+                new_elements.append(element)
+                continue
+                
+            if child.tag == self.collada_prefix + 'library_materials':
+                root.remove(child)
+                
+                element = ET.Element(self.collada_prefix + 'library_materials')
+                new_elements.append(element)
+                continue
+
+            if child.tag == self.collada_prefix + 'library_effects':
+                root.remove(child)
+                
+                element = ET.Element(self.collada_prefix + 'library_effects')
+                new_elements.append(element)
+                continue
+                
+            if child.tag == self.collada_prefix + 'asset':
+                for property in child:
+                    if property.tag == self.collada_prefix + 'modified':
+                        property.text = str(date.today())
+        
+        
+        for element in new_elements:
+            root.append(element)
+
+        self.indent(root)
+        self.sortchildrenby(root)
+        for child in root:
+            self.sortchildrenby(child)
+        tree.write(open(self.file_path, 'wb'), encoding='utf-8')
+        tree.write(open(self.file_path, 'wb'),encoding='utf-8')
 
 
 if __name__ == '__main__':
