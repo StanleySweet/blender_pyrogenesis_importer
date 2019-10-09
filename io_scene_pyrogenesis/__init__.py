@@ -663,12 +663,28 @@ class MaxColladaFixer:
             if child.tag == self.collada_prefix + 'library_materials':
                 root.remove(child)
                 
-                element = ET.Element(self.collada_prefix + 'library_materials')
-                new_elements.append(element)
+                # If there is no material no need to append it.
                 continue
 
             if child.tag == self.collada_prefix + 'library_effects':
                 root.remove(child)
+                
+                element = ET.Element(self.collada_prefix + 'library_effects')
+                new_elements.append(element)
+                continue
+                
+            if child.tag == self.collada_prefix + 'library_visual_scenes':
+                for visual_scene in child:
+                    for node in visual_scene:
+                        for subchild in node:
+                            if subchild.tag == self.collada_prefix + 'instance_geometry':
+                                for binding in subchild:
+                                    if binding.tag == self.collada_prefix + 'bind_material':
+                                        subchild.remove(binding)
+                            
+                        
+                        
+                  
                 
                 element = ET.Element(self.collada_prefix + 'library_effects')
                 new_elements.append(element)
@@ -683,10 +699,11 @@ class MaxColladaFixer:
         for element in new_elements:
             root.append(element)
 
-        self.indent(root)
+        
         self.sortchildrenby(root)
         for child in root:
             self.sortchildrenby(child)
+        self.indent(root)
         tree.write(open(self.file_path, 'wb'), encoding='utf-8')
         tree.write(open(self.file_path, 'wb'),encoding='utf-8')
 
