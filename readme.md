@@ -12,3 +12,4 @@ You can now import pyrogenesis xml actor files with **File > Import > Pyrogenesi
 ### Unsupported Features
 * Animation Import
 * 3Dsmax Animation Import
+* Multiple armatures with the same name
