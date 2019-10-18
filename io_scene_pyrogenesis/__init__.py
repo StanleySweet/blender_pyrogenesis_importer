@@ -21,7 +21,7 @@
 bl_info = {
     'name': 'Blender Pyrogenesis Importer',
     'author': 'Stanislas Daniel Claude Dolcini',
-    'version': (1, 2, 0),
+    'version': (1, 3, 2),
     'blender':  (2, 80, 0),
     'location': 'File > Import-Export',
     'description': 'Import ',
@@ -64,7 +64,6 @@ from bpy.props import (StringProperty,
 from bpy.types import Operator
 from bpy_extras.io_utils import ImportHelper, ExportHelper
 
-
 def menu_func_import(self, context):
     self.layout.operator(ImportPyrogenesisActor.bl_idname, text='Pyrogenesis Actor (.xml)')
 
@@ -88,15 +87,6 @@ def unregister():
         bpy.types.TOPBAR_MT_file_import.remove(menu_func_import)
 
 import os, sys
-
-class HiddenPrints:
-    def __enter__(self):
-        self._original_stdout = sys.stdout
-        sys.stdout = open(os.devnull, 'w')
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        sys.stdout.close()
-        sys.stdout = self._original_stdout
 
 class ImportPyrogenesisActor(Operator, ImportHelper):
     """Load a Pyrogenesis actor file"""
@@ -123,7 +113,6 @@ class ImportPyrogenesisActor(Operator, ImportHelper):
         default=-1
     )
 
-
     def draw(self, context):
         layout = self.layout
 
@@ -135,20 +124,21 @@ class ImportPyrogenesisActor(Operator, ImportHelper):
         return self.import_pyrogenesis_actor(context)
 
     def find_parent_armature(self, bone):
-
         for armature in bpy.data.armatures:
-            for bone2 in armature.bones:
-                if bone2.name == bone.name:
-                    return bpy.data.objects[armature.name]
+            for armature_bone in armature.bones:
+                if bone.name == armature_bone.name:
+                    for obj in bpy.data.objects:
+                        if hasattr(obj, 'data') and hasattr(obj.data, 'name') and obj.data.name == armature.name:
+                             return obj
 
         return None
 
-
     def set_copy_transform_constraint(self, obj, parent):
         """Set constraints for props so that they fit their prop point."""
-        print(obj.name + " -> " + parent.name)
+
         if(str(type(parent)) == '<class \'bpy_types.Bone\'>'):
             armature = self.find_parent_armature(parent)
+            print(obj.name + " -> " + armature.name +  " -> " + parent.name)
             constraint = obj.constraints.new('COPY_LOCATION')
             constraint.show_expanded = False
             constraint.mute = False
@@ -161,7 +151,7 @@ class ImportPyrogenesisActor(Operator, ImportHelper):
             constraint2.subtarget = parent.name
             return
 
-
+        print(obj.name + " -> " + parent.name)
         constraint = obj.constraints.new('COPY_LOCATION')
         constraint.show_expanded = False
         constraint.mute = False
@@ -178,10 +168,9 @@ class ImportPyrogenesisActor(Operator, ImportHelper):
             if texture.split('|')[0] == 'baseTex':
                 mname = os.path.basename(texture.split('|')[1])
                 break
-        
+
         if mname is None:
             mname = os.path.basename(textures[0].split('|')[1])
-
 
         if (bpy.data.materials.get(mname) is not None):
             return mname
@@ -190,18 +179,17 @@ class ImportPyrogenesisActor(Operator, ImportHelper):
         mat.use_nodes = True
         bsdf = mat.node_tree.nodes["Principled BSDF"]
 
-
         for texture in textures:
             fname = os.path.basename(texture.split('|')[1])
             print(fname)
             if fname not in bpy.data.images:
                 continue
-               
+
             texImage = mat.node_tree.nodes.new('ShaderNodeTexImage')
             texImage.image = bpy.data.images[fname]
             if texture.split('|')[0] == 'baseTex':
                 mat.node_tree.links.new(bsdf.inputs['Base Color'], texImage.outputs['Color'])
-                
+
                 if 'player_trans' in material:
                     color_node = mat.node_tree.nodes.new('ShaderNodeRGB')
                     color_node.outputs[0].default_value = (1, 0.213477, 0.0543914, 1)
@@ -213,48 +201,44 @@ class ImportPyrogenesisActor(Operator, ImportHelper):
                     mat.node_tree.links.new(multiply_node.inputs[2], color_node.outputs['Color'])
                     mat.node_tree.links.new(multiply_node.inputs[0], invert_node.outputs['Color'])
                     mat.node_tree.links.new(bsdf.inputs['Base Color'], multiply_node.outputs['Color'])
-                    
+
                 elif 'basic_trans' in material:
                     mix_shader_node = mat.node_tree.nodes.new('ShaderNodeMixShader')
                     transparent_node = mat.node_tree.nodes.new('ShaderNodeBsdfTransparent')
                     mat.node_tree.links.new(mix_shader_node.inputs[0], texImage.outputs['Alpha'])
                     mat.node_tree.links.new(mix_shader_node.inputs[2], bsdf.outputs['BSDF'])
                     mat.node_tree.links.new(mix_shader_node.inputs[1], transparent_node.outputs['BSDF'])
-                    
+
                     output_node = mat.node_tree.nodes.get("Material Output")
                     mat.node_tree.links.new(output_node.inputs['Surface'], mix_shader_node.outputs['Shader'])
                     mat.blend_method = 'CLIP'
-                    
+
                 continue
-            
+
             if texture.split('|')[0] == 'normTex':
                 texImage.image.colorspace_settings.name='Non-Color'
                 normal_node = mat.node_tree.nodes.new('ShaderNodeNormalMap')
                 separate_node = mat.node_tree.nodes.new('ShaderNodeSeparateXYZ')
                 invert_node = mat.node_tree.nodes.new('ShaderNodeInvert')
                 join_node = mat.node_tree.nodes.new('ShaderNodeCombineXYZ')
-                
+
                 mat.node_tree.links.new(separate_node.inputs['Vector'], texImage.outputs['Color'])
                 #Direct X normals need to have their Y channel inverted for OpenGL
                 mat.node_tree.links.new(invert_node.inputs['Color'], separate_node.outputs['Y'])
-                mat.node_tree.links.new(join_node.inputs['X'], separate_node.outputs['X'])       
-                mat.node_tree.links.new(join_node.inputs['Z'], separate_node.outputs['Z'])       
-                mat.node_tree.links.new(join_node.inputs['Y'], invert_node.outputs['Color'])   
-                mat.node_tree.links.new(normal_node.inputs['Color'], join_node.outputs['Vector'])       
+                mat.node_tree.links.new(join_node.inputs['X'], separate_node.outputs['X'])
+                mat.node_tree.links.new(join_node.inputs['Z'], separate_node.outputs['Z'])
+                mat.node_tree.links.new(join_node.inputs['Y'], invert_node.outputs['Color'])
+                mat.node_tree.links.new(normal_node.inputs['Color'], join_node.outputs['Vector'])
                 mat.node_tree.links.new(bsdf.inputs['Normal'], normal_node.outputs['Normal'])
                 continue
 
-            
+
             if texture.split('|')[0] == 'specTex':
                 mat.node_tree.links.new(bsdf.inputs['Specular'], texImage.outputs['Color'])
                 continue
-            
-         
-            
-            
-            
 
         return mat.name
+
     def assign_material_to_object(self, ob, material_name):
         """Assigns a given material name to an object."""
 
@@ -274,16 +258,12 @@ class ImportPyrogenesisActor(Operator, ImportHelper):
         import xml.etree.ElementTree as ET
         print('loading ' + self.filepath + '...')
 
-        self.currentPath = (self.filepath[0:self.filepath.find('actors\\')]).replace("\\", "/")
+        self.currentPath = (self.filepath[0:self.filepath.find('actors')]).replace("\\", "/")
         root = ET.parse(self.filepath).getroot()
         self.parse_actor(root)
 
-
-
         return {'FINISHED'}
     def create_custom_mesh(self, objname, px, py, pz, width, depth):
-
-    
         # Define arrays for holding data
         myvertex = []
         myfaces = []
@@ -312,25 +292,19 @@ class ImportPyrogenesisActor(Operator, ImportHelper):
         myface = [(0, 1, 3, 2)]
         myfaces.extend(myface)
 
-
-
-
-        mymesh = bpy.data.meshes.new(objname)
-        myobject = bpy.data.objects.new(objname, mymesh)
-
-        scene = bpy.context.scene
-        scene.collection.objects.link(myobject)
-        # bpy.context.scene.objects.link(myobject)
-
         # Generate mesh data
+        mymesh = bpy.data.meshes.new(objname)
         mymesh.from_pydata(myvertex, [], myfaces)
         # Calculate the edges
         mymesh.update(calc_edges=True)
-
+        myobject = bpy.data.objects.new(objname, mymesh)
         # Set Location
         myobject.location.x = px
         myobject.location.y = py
         myobject.location.z = pz
+        scene = bpy.context.scene
+        scene.collection.objects.link(myobject)
+
         return myobject
 
     def get_element_from_variant(self, root, name):
@@ -355,7 +329,7 @@ class ImportPyrogenesisActor(Operator, ImportHelper):
         for child in root:
             if child.tag == 'textures':
                 child_textures = child
-                
+
         if 'file' in root.attrib is not None:
             variantParent = ET.parse(self.currentPath + 'variants/' +  root.attrib['file']).getroot()
             parent_textures = self.get_textures_from_variant(variantParent)
@@ -365,10 +339,9 @@ class ImportPyrogenesisActor(Operator, ImportHelper):
                 return parent_textures
             else:
                 return child_textures
-    
-    
+
+
         return child_textures
-    
 
     def get_props_from_variant(self, root):
         import xml.etree.ElementTree as ET
@@ -392,11 +365,6 @@ class ImportPyrogenesisActor(Operator, ImportHelper):
 
         return childProps
 
-
-
-        # No mesh was found in this variant.
-
-
     def parse_actor(self, root, proppoint="root", parentprops=[], rootObj=None, propDepth=0):
         import xml.etree.ElementTree as ET
         import bpy
@@ -409,11 +377,14 @@ class ImportPyrogenesisActor(Operator, ImportHelper):
         imported_textures = []
         imported_objects = []
         material_object = None
-        rootObject = None
+        rootObject = rootObj
         material_type = 'default.xml'
         for group in root:
             if group.tag == 'material':
-                material_type = group.text 
+                material_type = group.text
+
+        if rootObj is not None:
+            print("Root object is:" + rootObj.name)
 
         for group in root:
             if group.tag == 'material':
@@ -429,7 +400,6 @@ class ImportPyrogenesisActor(Operator, ImportHelper):
                 while (('frequency' not in variant.attrib or variant.attrib['frequency'] == "0") and retries < len(group)):
                     variant = group[random.randint(0,len(group) - 1)]
                     retries = retries + 1
-
 
             if 'file' in variant.attrib:
                 present_tags = [child.tag for child in variant]
@@ -458,11 +428,6 @@ class ImportPyrogenesisActor(Operator, ImportHelper):
                     for prop in variant_parent_props:
                         if prop is not None and prop.attrib['attachpoint'] not in variant_tags:
                             variant['props'].append(prop)
-                    
-                    
-                    
-                    
-
 
             for child in variant:
                 if(child.tag == 'mesh' or child.tag == 'decal'):
@@ -478,12 +443,14 @@ class ImportPyrogenesisActor(Operator, ImportHelper):
                         obj.select_set(False)
                     # Import the new objects
                     if child.tag == "mesh":
-                        with HiddenPrints():
-                            fixer = MaxColladaFixer(self.currentPath + 'meshes/' + child.text)
-                            fixer.execute()
-                            bpy.ops.wm.collada_import(filepath=(self.currentPath + 'meshes/' + child.text), import_units=True)
+                        fixer = MaxColladaFixer(self.currentPath + 'meshes/' + child.text)
+                        fixer.execute()
+                        bpy.ops.wm.collada_import(filepath=(self.currentPath + 'meshes/' + child.text), import_units=True)
                     else:
                         bpy.ops.object.select_all(action='DESELECT')
+                        if material_type == 'default.xml' or 'terrain' in material_type:
+                            material_type = 'basic_trans.xml'
+
                         decal = self.create_custom_mesh("Decal", float(child.attrib['offsetx']), float(child.attrib['offsetz']), 0, float(child.attrib['width']), float(child.attrib['depth']))
                         decal.select_set(True)
                         bpy.context.view_layer.objects.active = decal
@@ -503,8 +470,16 @@ class ImportPyrogenesisActor(Operator, ImportHelper):
 
 
                     for imported_object in imported_objects:
+                        if imported_object is not None and 'prop.' in imported_object.name:
+                            imported_object.name = imported_object.name.replace("prop.","prop_")
+                            if imported_object.data is not None and 'prop.' in imported_object.data.name:
+                                imported_object.data.name = imported_object.data.name.replace("prop.","prop_")
                         # props are parented so they should follow their root object.
-                        if "prop-" in imported_object.name or "prop_" in imported_object.name:
+                        if "prop-" in imported_object.name:
+                            imported_object.name = imported_object.name.replace("prop-","prop_")
+                            if imported_object.data is not None and 'prop-' in imported_object.data.name:
+                                imported_object.data.name = imported_object.data.name.replace("prop-","prop_")
+                        if "prop_" in imported_object.name:
                             meshprops.append(imported_object)
                             imported_object.select_set(False)
 
@@ -546,7 +521,7 @@ class ImportPyrogenesisActor(Operator, ImportHelper):
                         if found == True:
                             continue
 
-                        print('\033[93m' + imported_object.name + " has no parent prop point named prop-" + proppoint + '\033[0m')
+                        print('' + imported_object.name + ' has no parent prop point named prop_' + proppoint + '. Root object name: ' + (rootObj.name if rootObj is not None else 'Undefined')  + '')
 
                 if(child.tag == 'textures' and self.import_textures):
                     print("=======================================================")
@@ -556,8 +531,6 @@ class ImportPyrogenesisActor(Operator, ImportHelper):
                         for texture in child:
                             imported_textures.append(texture)
 
-
-
                 if(child.tag == 'props' and self.import_props and (self.import_depth == -1 or (self.import_depth > propDepth and self.import_depth > 0))):
 
                     print("=======================================================")
@@ -565,25 +538,33 @@ class ImportPyrogenesisActor(Operator, ImportHelper):
                     print("=======================================================")
 
                     finalprops = imported_objects.copy()
-
                     if len(finalprops) > 0:
+                        rootObject = None
                         for obj in finalprops:
                             if ('prop-' in obj.name or 'prop_' in obj.name):
                                 continue
 
                             if hasattr(obj, 'type') and obj.type == 'ARMATURE':
+                                print("=======================================================")
+                                print("============== Gathering Armature Props ===============")
+                                print("=======================================================")
+
                                 for bone in obj.data.bones:
-                                    if "prop-" in bone.name or "prop_" in bone.name:
+                                    if 'prop.' in bone.name:
+                                        bone.name = bone.name.replace('prop.','prop_')
+                                    if 'prop-' in bone.name:
+                                        bone.name = bone.name.replace('prop-','prop_')
+                                    if 'prop_' in bone.name:
+                                        print(bone.name)
                                         finalprops.append(bone)
+
                                 continue
-
                             if hasattr(obj, 'type'):
-
-                                rootObject = obj
-
+                                rootObject = bpy.data.objects[obj.name]
                             finalprops.remove(obj)
 
-
+                    if rootObject is not None:
+                        print(rootObject.name)
 
                     for prop in child:
                         imported_props.append(prop)
@@ -593,7 +574,7 @@ class ImportPyrogenesisActor(Operator, ImportHelper):
             print("Loading " + texture.attrib['name'] + ": " + self.currentPath + 'textures/skins/' + texture.attrib['file'])
             bpy.data.images.load(self.currentPath + 'textures/skins/' + texture.attrib['file'], check_existing=True)
             mat_textures.append(texture.attrib['name'] + '|' + self.currentPath + 'textures/skins/' + texture.attrib['file'])
-        
+
         if len(mat_textures):
             material_object = self.create_new_material(mat_textures, material_type)
 
@@ -611,21 +592,32 @@ class ImportPyrogenesisActor(Operator, ImportHelper):
             print("=======================================================")
             print("============== Gathering Props ========================")
             print("=======================================================")
+            if prop.attrib['actor'] is "":
+                continue;
+
             print('Loading ' + self.currentPath + 'actors/' +  prop.attrib['actor'] + '.')
             proproot = ET.parse(self.currentPath + 'actors/' +  prop.attrib['actor']).getroot()
-            if finalprops is None or len(finalprops) <= 0:
-                self.parse_actor(proproot, prop.attrib['attachpoint'], meshprops, rootObject, propDepth + 1)
-            else:
-                self.parse_actor(proproot, prop.attrib['attachpoint'], finalprops, rootObject, propDepth + 1)
 
+            propRootObj = self.find_prop_root_object(finalprops, prop.attrib['attachpoint'])
+            if propRootObj is not None and prop.attrib['attachpoint'] is not 'root' and rootObject is None:
+                rootObject = propRootObj
+
+            self.parse_actor(proproot, prop.attrib['attachpoint'], meshprops if finalprops is None or len(finalprops) <= 0 else finalprops, rootObject, propDepth + 1)
+
+    def find_prop_root_object(self, imported_objects, proppoint):
+        for imported_object in imported_objects:
+            if 'prop_' + proppoint in imported_object.name:
+                return imported_object
+
+        return None
 class MaxColladaFixer:
     file_path = None
     collada_prefix = '{http://www.collada.org/2005/11/COLLADASchema}'
-    
+
     def sortchildrenby(self, parent):
         parent[:] = sorted(parent, key=lambda child: child.tag)
 
-    
+
     def indent(self, elem, level=0):
         i = "\n" + level*"  "
         if len(elem):
@@ -640,39 +632,39 @@ class MaxColladaFixer:
         else:
             if level and (not elem.tail or not elem.tail.strip()):
                 elem.tail = i
-    
+
     def __init__(self, file_path=None):
         self.file_path = file_path
 
     def execute(self):
-        import xml.etree.ElementTree as ET   
+        import xml.etree.ElementTree as ET
         from datetime import date
-        
+
         tree = ET.parse(self.file_path)
         ET.register_namespace("", "http://www.collada.org/2005/11/COLLADASchema")
         root = tree.getroot()
         new_elements = []
-        
+
         for child in root:
             if child.tag == self.collada_prefix + 'library_images':
                 root.remove(child)
                 element = ET.Element(self.collada_prefix + 'library_images')
                 new_elements.append(element)
                 continue
-                
+
             if child.tag == self.collada_prefix + 'library_materials':
                 root.remove(child)
-                
+
                 # If there is no material no need to append it.
                 continue
 
             if child.tag == self.collada_prefix + 'library_effects':
                 root.remove(child)
-                
+
                 element = ET.Element(self.collada_prefix + 'library_effects')
                 new_elements.append(element)
                 continue
-                
+
             if child.tag == self.collada_prefix + 'library_visual_scenes':
                 for visual_scene in child:
                     for node in visual_scene:
@@ -681,32 +673,23 @@ class MaxColladaFixer:
                                 for binding in subchild:
                                     if binding.tag == self.collada_prefix + 'bind_material':
                                         subchild.remove(binding)
-                            
-                        
-                        
-                  
-                
-                element = ET.Element(self.collada_prefix + 'library_effects')
-                new_elements.append(element)
                 continue
-                
+
             if child.tag == self.collada_prefix + 'asset':
                 for property in child:
                     if property.tag == self.collada_prefix + 'modified':
                         property.text = str(date.today())
-        
-        
+
         for element in new_elements:
             root.append(element)
 
-        
+
         self.sortchildrenby(root)
         for child in root:
             self.sortchildrenby(child)
         self.indent(root)
         tree.write(open(self.file_path, 'wb'), encoding='utf-8')
         tree.write(open(self.file_path, 'wb'),encoding='utf-8')
-
 
 if __name__ == '__main__':
     register()
