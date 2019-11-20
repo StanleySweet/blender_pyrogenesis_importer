@@ -21,7 +21,7 @@
 bl_info = {
     'name': 'Blender Pyrogenesis Importer',
     'author': 'Stanislas Daniel Claude Dolcini',
-    'version': (1, 3, 2),
+    'version': (1, 3, 3),
     'blender':  (2, 80, 0),
     'location': 'File > Import-Export',
     'description': 'Import ',
@@ -443,9 +443,10 @@ class ImportPyrogenesisActor(Operator, ImportHelper):
                         obj.select_set(False)
                     # Import the new objects
                     if child.tag == "mesh":
-                        fixer = MaxColladaFixer(self.currentPath + 'meshes/' + child.text)
+                        mesh_path = self.currentPath + 'meshes/' + child.text
+                        fixer = MaxColladaFixer(mesh_path)
                         fixer.execute()
-                        bpy.ops.wm.collada_import(filepath=(self.currentPath + 'meshes/' + child.text), import_units=True)
+                        bpy.ops.wm.collada_import(filepath=mesh_path, import_units=True)
                     else:
                         bpy.ops.object.select_all(action='DESELECT')
                         if material_type == 'default.xml' or 'terrain' in material_type:
@@ -639,13 +640,14 @@ class MaxColladaFixer:
     def execute(self):
         import xml.etree.ElementTree as ET
         from datetime import date
-
+        
         tree = ET.parse(self.file_path)
         ET.register_namespace("", "http://www.collada.org/2005/11/COLLADASchema")
         root = tree.getroot()
         new_elements = []
-
         for child in root:
+            print("Fixing Collada..." + child.tag)
+        for child in root[:]:
             if child.tag == self.collada_prefix + 'library_images':
                 root.remove(child)
                 element = ET.Element(self.collada_prefix + 'library_images')
@@ -669,10 +671,17 @@ class MaxColladaFixer:
                 for visual_scene in child:
                     for node in visual_scene:
                         for subchild in node:
+                            warnings.warn("subchild: "+ subchild.tag)
                             if subchild.tag == self.collada_prefix + 'instance_geometry':
                                 for binding in subchild:
                                     if binding.tag == self.collada_prefix + 'bind_material':
                                         subchild.remove(binding)
+                                        break;
+                            if subchild.tag == self.collada_prefix + 'instance_controller':
+                                for binding in subchild:
+                                    if binding.tag == self.collada_prefix + 'bind_material':
+                                        subchild.remove(binding)
+                                        break;
                 continue
 
             if child.tag == self.collada_prefix + 'asset':
