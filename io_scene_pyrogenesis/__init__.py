@@ -671,7 +671,6 @@ class MaxColladaFixer:
                 for visual_scene in child:
                     for node in visual_scene:
                         for subchild in node:
-                            warnings.warn("subchild: "+ subchild.tag)
                             if subchild.tag == self.collada_prefix + 'instance_geometry':
                                 for binding in subchild:
                                     if binding.tag == self.collada_prefix + 'bind_material':
