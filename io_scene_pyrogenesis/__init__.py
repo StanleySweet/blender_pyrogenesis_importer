@@ -21,7 +21,7 @@
 bl_info = {
     'name': 'Blender Pyrogenesis Importer',
     'author': 'Stanislas Daniel Claude Dolcini',
-    'version': (1, 3, 5),
+    'version': (1, 3, 6),
     'blender':  (2, 80, 0),
     'location': 'File > Import-Export',
     'description': 'Import ',
@@ -445,9 +445,13 @@ class ImportPyrogenesisActor(Operator, ImportHelper):
                     # Import the new objects
                     if child.tag == "mesh":
                         mesh_path = self.currentPath + 'meshes/' + child.text
-                        fixer = MaxColladaFixer(mesh_path)
-                        fixer.execute()
-                        bpy.ops.wm.collada_import(filepath=mesh_path, import_units=True)
+                        try:
+
+                            fixer = MaxColladaFixer(mesh_path)
+                            fixer.execute()
+                            bpy.ops.wm.collada_import(filepath=mesh_path, import_units=True)
+                        except:
+                            print('Could not load' + mesh_path)
                     else:
                         bpy.ops.object.select_all(action='DESELECT')
                         if material_type == 'default.xml' or 'terrain' in material_type:
@@ -595,16 +599,21 @@ class ImportPyrogenesisActor(Operator, ImportHelper):
             print("============== Gathering Props ========================")
             print("=======================================================")
             if prop.attrib['actor'] is "":
-                continue;
+                continue
 
-            print('Loading ' + self.currentPath + 'actors/' +  prop.attrib['actor'] + '.')
-            proproot = ET.parse(self.currentPath + 'actors/' +  prop.attrib['actor']).getroot()
+            try:
+                prop_path = self.currentPath + 'actors/' +  prop.attrib['actor']
+                print('Loading ' + prop_path + '.')
+                proproot = ET.parse(prop_path).getroot()
 
-            propRootObj = self.find_prop_root_object(finalprops, prop.attrib['attachpoint'])
-            if propRootObj is not None and prop.attrib['attachpoint'] is not 'root' and rootObject is None:
-                rootObject = propRootObj
+                propRootObj = self.find_prop_root_object(finalprops, prop.attrib['attachpoint'])
+                if propRootObj is not None and prop.attrib['attachpoint'] is not 'root' and rootObject is None:
+                    rootObject = propRootObj
 
-            self.parse_actor(proproot, prop.attrib['attachpoint'], meshprops if finalprops is None or len(finalprops) <= 0 else finalprops, rootObject, propDepth + 1)
+                self.parse_actor(proproot, prop.attrib['attachpoint'], meshprops if finalprops is None or len(finalprops) <= 0 else finalprops, rootObject, propDepth + 1)
+            except:
+                print('Could not load' + mesh_path)
+
 
     def find_prop_root_object(self, imported_objects, proppoint):
         for imported_object in imported_objects:
@@ -641,7 +650,7 @@ class MaxColladaFixer:
     def execute(self):
         import xml.etree.ElementTree as ET
         from datetime import date
-        
+
         tree = ET.parse(self.file_path)
         ET.register_namespace("", "http://www.collada.org/2005/11/COLLADASchema")
         root = tree.getroot()
