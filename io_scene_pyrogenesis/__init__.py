@@ -471,6 +471,18 @@ class ImportPyrogenesisActor(Operator, ImportHelper):
                         obj.select_set(True)
 
                     backup =  bpy.context.selected_objects.copy()
+                    for b in backup :
+                        if b.data is None or b.data.uv_layers is None or not len(b.data.uv_layers):
+                            continue
+                        if len(b.data.uv_layers) > 0:
+                            print("Renaming" + b.data.uv_layers[0].name + " to " + "UVMap")
+                            b.data.uv_layers[0].name = "UVMap"
+
+                        if len(b.data.uv_layers) > 1:
+                            print("Renaming" + b.data.uv_layers[1].name + " to " + "AOMap")
+                            b.data.uv_layers[1].name = "AOMap"
+
+
                     # Get those objects
                     imported_objects = bpy.context.selected_objects.copy()
 
