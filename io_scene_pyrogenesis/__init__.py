@@ -21,8 +21,8 @@
 bl_info = {
     'name': 'Blender Pyrogenesis Importer',
     'author': 'Stanislas Daniel Claude Dolcini',
-    'version': (1, 3, 10),
-    'blender':  (2, 80, 0),
+    'version': (1, 3, 12),
+    'blender':  (2, 90, 3),
     'location': 'File > Import-Export',
     'description': 'Import ',
     'wiki_url': 'https://github.com/StanleySweet/blender_pyrogenesis_importer',
@@ -86,28 +86,33 @@ def unregister():
     else:
         bpy.types.TOPBAR_MT_file_import.remove(menu_func_import)
 
+
+from bpy_extras.io_utils import ImportHelper
 import os, sys
 
-class ImportPyrogenesisActor(Operator, ImportHelper):
+class ImportPyrogenesisActor(bpy.types.Operator, ImportHelper):
     """Load a Pyrogenesis actor file"""
     bl_label = "Import Pyrogenesis Actor"
-    bl_idname = 'import_scene.xml'
-    filter_glob = StringProperty(default="*.xml", options={'HIDDEN'})
+    bl_idname = 'import_pyrogenesis_scene.xml'
     currentPath = ""
+    filter_glob:  bpy.props.StringProperty(
+        default="*.xml", 
+        options={'HIDDEN'}
+    )
 
-    import_props = BoolProperty(
+    import_props: bpy.props.BoolProperty(
         name='Import props',
         description='Whether to include props in the importation.',
         default=True
     )
 
-    import_textures = BoolProperty(
+    import_textures: bpy.props.BoolProperty(
         name='Import textures',
         description='Whether to include textures in the importation.',
         default=True
     )
 
-    import_depth = IntProperty(
+    import_depth: bpy.props.IntProperty(
         name='Import Depth',
         description='How much prop depth there should be',
         default=-1
@@ -610,7 +615,7 @@ class ImportPyrogenesisActor(Operator, ImportHelper):
             print("=======================================================")
             print("============== Gathering Props ========================")
             print("=======================================================")
-            if prop.attrib['actor'] is "":
+            if prop.attrib['actor'] == "":
                 continue
 
             try:
@@ -619,7 +624,7 @@ class ImportPyrogenesisActor(Operator, ImportHelper):
                 proproot = ET.parse(prop_path).getroot()
 
                 propRootObj = self.find_prop_root_object(finalprops, prop.attrib['attachpoint'])
-                if propRootObj is not None and prop.attrib['attachpoint'] is not 'root' and rootObject is None:
+                if propRootObj is not None and prop.attrib['attachpoint'] != 'root' and rootObject is None:
                     rootObject = propRootObj
 
                 self.parse_actor(proproot, prop.attrib['attachpoint'], meshprops if finalprops is None or len(finalprops) <= 0 else finalprops, rootObject, propDepth + 1)
@@ -697,12 +702,12 @@ class MaxColladaFixer:
                                 for binding in subchild:
                                     if binding.tag == self.collada_prefix + 'bind_material':
                                         subchild.remove(binding)
-                                        break;
+                                        break
                             if subchild.tag == self.collada_prefix + 'instance_controller':
                                 for binding in subchild:
                                     if binding.tag == self.collada_prefix + 'bind_material':
                                         subchild.remove(binding)
-                                        break;
+                                        break
                 continue
 
             if child.tag == self.collada_prefix + 'asset':
