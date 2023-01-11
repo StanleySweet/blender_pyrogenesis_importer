@@ -412,7 +412,7 @@ class ImportPyrogenesisActor(bpy.types.Operator, ImportHelper):
                     variant_tags = [texture.attrib['name'] for texture in variant.find('textures')]
                     for texture in variant_parent_textures:
                         if texture is not None and texture.attrib['name'] not in variant_tags:
-                            variant['textures'].append(texture)
+                            variant.find('textures').append(texture)
 
                 variant_parent_props = self.get_props_from_variant(variant)
                 if 'props' not in present_tags and variant_parent_props is not None:
@@ -421,7 +421,7 @@ class ImportPyrogenesisActor(bpy.types.Operator, ImportHelper):
                     variant_tags = [prop.attrib['attachpoint'] for prop in variant.find('props')]
                     for prop in variant_parent_props:
                         if prop is not None and prop.attrib['attachpoint'] not in variant_tags:
-                            variant['props'].append(prop)
+                            variant.find('props').append(prop)
 
             for child in variant:
                 if(child.tag == 'mesh' or child.tag == 'decal'):
