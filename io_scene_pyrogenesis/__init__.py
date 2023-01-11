@@ -57,12 +57,7 @@ if "bpy" in locals():
     reload_package(locals())
 
 import bpy
-from bpy.props import (StringProperty,
-                       BoolProperty,
-                       EnumProperty,
-                       IntProperty)
-from bpy.types import Operator
-from bpy_extras.io_utils import ImportHelper, ExportHelper
+from bpy_extras.io_utils import ImportHelper
 
 def menu_func_import(self, context):
     self.layout.operator(ImportPyrogenesisActor.bl_idname, text='Pyrogenesis Actor (.xml)')
@@ -87,7 +82,6 @@ def unregister():
         bpy.types.TOPBAR_MT_file_import.remove(menu_func_import)
 
 
-from bpy_extras.io_utils import ImportHelper
 import os, sys
 
 class ImportPyrogenesisActor(bpy.types.Operator, ImportHelper):
