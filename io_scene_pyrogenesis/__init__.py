@@ -66,20 +66,14 @@ def register():
     # bpy.utils.register_module(__name__)
     bpy.utils.register_class(ImportPyrogenesisActor)
     # add to the export / import menu
-    if bpy.app.version < (2, 80, 0):
-        bpy.types.INFO_MT_file_import.append(menu_func_import)
-    else:
-        bpy.types.TOPBAR_MT_file_import.append(menu_func_import)
+    bpy.types.TOPBAR_MT_file_import.append(menu_func_import)
 
 
 def unregister():
     # bpy.utils.unregister_module(__name__)
     bpy.utils.unregister_class(ImportPyrogenesisActor)
     # remove from the export / import menu
-    if bpy.app.version < (2, 80, 0):
-        bpy.types.INFO_MT_file_import.remove(menu_func_import)
-    else:
-        bpy.types.TOPBAR_MT_file_import.remove(menu_func_import)
+    bpy.types.TOPBAR_MT_file_import.remove(menu_func_import)
 
 
 import os, sys
