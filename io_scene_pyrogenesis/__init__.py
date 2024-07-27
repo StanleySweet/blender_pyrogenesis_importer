@@ -8,7 +8,7 @@
 bl_info = {
     'name': 'Blender Pyrogenesis Importer',
     'author': 'Stanislas Daniel Claude Dolcini',
-    'version': (1, 3, 12),
+    'version': (1, 3, 13),
     'blender':  (2, 90, 3),
     'location': 'File > Import-Export',
     'description': 'Import ',
