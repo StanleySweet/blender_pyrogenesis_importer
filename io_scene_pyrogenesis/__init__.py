@@ -86,25 +86,25 @@ class ImportPyrogenesisActor(bpy.types.Operator, ImportHelper):
     filter_glob:  bpy.props.StringProperty(
         default="*.xml", 
         options={'HIDDEN'}
-    )
+    ) # type: ignore
 
     import_props: bpy.props.BoolProperty(
         name='Import props',
         description='Whether to include props in the importation.',
         default=True
-    )
+    ) # type: ignore
 
     import_textures: bpy.props.BoolProperty(
         name='Import textures',
         description='Whether to include textures in the importation.',
         default=True
-    )
+    ) # type: ignore
 
     import_depth: bpy.props.IntProperty(
         name='Import Depth',
         description='How much prop depth there should be',
         default=-1
-    )
+    ) # type: ignore
 
     def draw(self, context):
         layout = self.layout
