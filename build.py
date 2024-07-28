@@ -3,7 +3,8 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 
 import os
-import tomllib
+try: import tomllib
+except ModuleNotFoundError: import pip._vendor.tomli as tomllib
 import zipfile
 
 
