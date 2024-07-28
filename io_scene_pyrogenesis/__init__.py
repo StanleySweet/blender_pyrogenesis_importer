@@ -4,22 +4,6 @@
 
 # 'https://blender.stackexchange.com/questions/39303/blender-script-import-model-and-render-it'
 
-
-bl_info = {
-    'name': 'Blender Pyrogenesis Importer',
-    'author': 'Stanislas Daniel Claude Dolcini',
-    'version': (1, 3, 13),
-    'blender':  (2, 90, 3),
-    'location': 'File > Import-Export',
-    'description': 'Import ',
-    'wiki_url': 'https://github.com/StanleySweet/blender_pyrogenesis_importer',
-    'category': 'Import-Export'
-}
-
-def get_version_string():
-    return str(bl_info['version'][0]) + '.' + str(bl_info['version'][1]) + '.' + str(bl_info['version'][2])
-
-
 #
 # Script reloading (if the user calls 'Reload Scripts' from Blender)
 #

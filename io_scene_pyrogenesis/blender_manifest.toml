@@ -1,0 +1,16 @@
+schema_version = "1.0.0"
+
+version = "2.0.0"
+blender_version_min = "4.2.0"
+
+id = "io_scene_pyrogenesis"
+name = "Blender Pyrogenesis Importer"
+tagline = "Import Pyrogenesis Actors into Blender"
+maintainer = "Stanislas Daniel Claude Dolcini <stanislas.dolcini@devinci.fr>"
+type = "add-on"
+website = "https://github.com/StanleySweet/blender_pyrogenesis_importer"
+tags = ["Import-Export"]
+license = ["SPDX:GPL-2.0-or-later"]
+
+[permissions]
+files = "Fixup Maya dae and import pyrogenesis actors from disk"
