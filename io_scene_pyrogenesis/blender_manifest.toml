@@ -11,6 +11,10 @@ type = "add-on"
 website = "https://github.com/StanleySweet/blender_pyrogenesis_importer"
 tags = ["Import-Export"]
 license = ["SPDX:GPL-2.0-or-later"]
+copyright = [
+    "2024 seragh",
+    "2024 Stanislas Daniel Claude Dolcini",
+]
 
 [permissions]
-files = "Fixup Maya dae and import pyrogenesis actors from disk"
+files = "Fixup Maya/3DS dae and import pyrogenesis actor (.xml) from disk"
