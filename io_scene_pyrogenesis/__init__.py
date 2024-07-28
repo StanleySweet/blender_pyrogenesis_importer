@@ -199,11 +199,7 @@ class ImportPyrogenesisActor(bpy.types.Operator, ImportHelper):
 
             if texture.split('|')[0] == 'specTex':
                 texImage.image.colorspace_settings.name='Non-Color'
-                if bpy.app.version < (4, 0, 0):
-                    mat.node_tree.links.new(bsdf.inputs['Specular'], texImage.outputs['Color'])
-                else:
-                    mat.node_tree.links.new(bsdf.inputs['Specular IOR Level'], texImage.outputs['Color'])
-                continue
+                mat.node_tree.links.new(bsdf.inputs['Specular IOR Level'], texImage.outputs['Color'])
 
         return mat.name
 
