@@ -1,6 +1,6 @@
 schema_version = "1.0.0"
 
-version = "2.0.0"
+version = "2.0.1"
 blender_version_min = "4.2.0"
 
 id = "io_scene_pyrogenesis"
