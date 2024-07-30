@@ -26,19 +26,12 @@ jobs:
     - name: Run build script
       run: python build.py
 
-    - name: Extract version
-      id: extract_version
-      run: |
-        python -c "try: import tomllib; try: import tomllib except ModuleNotFoundError: import pip._vendor.tomli as tomllib; print(tomllib.load(open('io_scene_pyrogenesis/blender_manifest.toml', 'rb'))['version'])" > VERSION.txt
-        VERSION=$(cat VERSION.txt)
-        echo "VERSION=$VERSION" >> $GITHUB_ENV
-
     - name: Create Release
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        VERSION=$(cat VERSION.txt)
-        gh release create $VERSION dist/* -t "Release $VERSION" -n "Automated release for version $VERSION"
+        TAG_NAME=$(echo $GITHUB_REF | sed 's/refs\/tags\///')
+        gh release create $TAG_NAME dist/* -t "Release $TAG_NAME" -n "Automated release for version $TAG_NAME"
 
     - name: Upload artifact
       uses: actions/upload-artifact@v3
