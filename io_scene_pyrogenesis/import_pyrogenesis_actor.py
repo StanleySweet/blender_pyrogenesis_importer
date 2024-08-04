@@ -2,7 +2,7 @@
 # This file is part of 0 A.D.
 # SPDX-License-Identifier: GPL-2.0-or-later
 
-from max_collada_fixer import MaxColladaFixer
+from .max_collada_fixer import MaxColladaFixer
 import bpy
 import bpy_extras
 import logging
