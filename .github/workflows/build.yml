@@ -1,3 +1,4 @@
+---
 name: Build Archive
 
 on:
@@ -10,31 +11,34 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.x'
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
 
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        python -c "import sys; print(sys.version_info[:2])" | grep -E '^\(3, (1[1-9]|[2-9][0-9])\)$' || python -m pip install tomli
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -c "import sys; print(sys.version_info[:2])" \
+          | grep -E '^\(3, (1[1-9]|[2-9][0-9])\)$' \
+          || python -m pip install tomli
 
-    - name: Run build script
-      run: python build.py
+      - name: Run build script
+        run: python build.py
 
-    - name: Create Release
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: |
-        TAG_NAME=$(echo $GITHUB_REF | sed 's/refs\/tags\///')
-        gh release create $TAG_NAME dist/* -t "Release $TAG_NAME" -n "Automated release for version $TAG_NAME"
+      - name: Create Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG_NAME=$(echo $GITHUB_REF | sed 's/refs\/tags\///')
+          gh release create $TAG_NAME dist/* -t "Release $TAG_NAME" -n \
+          "Automated release for version $TAG_NAME"
 
-    - name: Upload artifact
-      uses: actions/upload-artifact@v3
-      with:
-        name: io_scene_pyrogenesis
-        path: dist/*
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: io_scene_pyrogenesis
+          path: dist/*
