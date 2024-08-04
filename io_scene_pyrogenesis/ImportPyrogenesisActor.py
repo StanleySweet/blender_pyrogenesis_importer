@@ -2,12 +2,14 @@
 # This file is part of 0 A.D.
 # SPDX-License-Identifier: GPL-2.0-or-later
 
+from . import MaxColladaFixer
 import bpy
 import bpy_extras
 import logging
+import math
 import os
-from . import MaxColladaFixer
-
+import random
+import xml.etree.ElementTree as ET
 
 class ImportPyrogenesisActor(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
     """Load a Pyrogenesis actor file"""
@@ -221,8 +223,6 @@ class ImportPyrogenesisActor(bpy.types.Operator, bpy_extras.io_utils.ImportHelpe
             ob.data.materials.append(mat)
 
     def import_pyrogenesis_actor(self, context):
-        import xml.etree.ElementTree as ET
-
         self.logger.info("loading " + self.filepath + "...")
 
         self.currentPath = (self.filepath[0 : self.filepath.find("actors")]).replace(
@@ -278,8 +278,6 @@ class ImportPyrogenesisActor(bpy.types.Operator, bpy_extras.io_utils.ImportHelpe
         return myobject
 
     def get_element_from_variant(self, root, name):
-        import xml.etree.ElementTree as ET
-
         for child in root:
             if child.tag == name:
                 return child
@@ -297,8 +295,6 @@ class ImportPyrogenesisActor(bpy.types.Operator, bpy_extras.io_utils.ImportHelpe
         return self.get_element_from_variant(root, "mesh")
 
     def get_textures_from_variant(self, root):
-        import xml.etree.ElementTree as ET
-
         child_textures = None
         for child in root:
             if child.tag == "textures":
@@ -319,8 +315,6 @@ class ImportPyrogenesisActor(bpy.types.Operator, bpy_extras.io_utils.ImportHelpe
         return child_textures
 
     def get_props_from_variant(self, root):
-        import xml.etree.ElementTree as ET
-
         childProps = None
         for child in root:
             if child.tag == "props":
@@ -344,10 +338,6 @@ class ImportPyrogenesisActor(bpy.types.Operator, bpy_extras.io_utils.ImportHelpe
     def parse_actor(
         self, root, proppoint="root", parentprops=[], rootObj=None, propDepth=0
     ):
-        import xml.etree.ElementTree as ET
-        import bpy
-        import random
-        import math
 
         meshprops = []
         imported_props = []
