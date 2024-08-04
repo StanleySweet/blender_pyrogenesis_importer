@@ -336,6 +336,15 @@ class ImportPyrogenesisActor(bpy.types.Operator, bpy_extras.io_utils.ImportHelpe
 
         return childProps
 
+    def mesh_uv_layers_names_update(self, mesh: bpy.types.Mesh):
+        if len(mesh.uv_layers) > 0:
+            self.logger.info("Renaming" + mesh.uv_layers[0].name + " to " + "UVMap")
+            mesh.uv_layers[0].name = "UVMap"
+
+        if len(mesh.uv_layers) > 1:
+            self.logger.info("Renaming" + mesh.uv_layers[1].name + " to " + "AOMap")
+            mesh.uv_layers[1].name = "AOMap"
+
     def parse_actor(
         self, root, proppoint="root", parentprops=[], rootObj=None, propDepth=0
     ):
@@ -465,23 +474,8 @@ class ImportPyrogenesisActor(bpy.types.Operator, bpy_extras.io_utils.ImportHelpe
 
                     backup = bpy.context.selected_objects.copy()
                     for b in backup:
-                        if (
-                            b.data is None
-                            or b.data.uv_layers is None
-                            or not len(b.data.uv_layers)
-                        ):
-                            continue
-                        if len(b.data.uv_layers) > 0:
-                            self.logger.info(
-                                "Renaming" + b.data.uv_layers[0].name + " to " + "UVMap"
-                            )
-                            b.data.uv_layers[0].name = "UVMap"
-
-                        if len(b.data.uv_layers) > 1:
-                            self.logger.info(
-                                "Renaming" + b.data.uv_layers[1].name + " to " + "AOMap"
-                            )
-                            b.data.uv_layers[1].name = "AOMap"
+                        if b.type == "MESH":
+                            self.mesh_uv_layers_names_update(b.data)
 
                     # Get those objects
                     imported_objects = bpy.context.selected_objects.copy()
