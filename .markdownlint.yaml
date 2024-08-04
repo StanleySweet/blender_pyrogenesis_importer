@@ -1,0 +1,5 @@
+---
+commands-show-output: false
+default: true
+no-bare-urls: false
+fenced-code-language: false
