@@ -423,15 +423,7 @@ class ImportPyrogenesisActor(bpy.types.Operator, bpy_extras.io_utils.ImportHelpe
 
             for child in variant:
                 if child.tag == "mesh" or child.tag == "decal":
-                    self.logger.info(
-                        "======================================================="
-                    )
-                    self.logger.info(
-                        "============== Gathering Mesh ========================="
-                    )
-                    self.logger.info(
-                        "======================================================="
-                    )
+                    self.print_header("Gathering Mesh")
 
                     # Get the objects prior to importing
                     prior_objects = [Object for Object in bpy.context.scene.objects]
@@ -556,15 +548,8 @@ class ImportPyrogenesisActor(bpy.types.Operator, bpy_extras.io_utils.ImportHelpe
                     ]
                     for material in set(new_current_materials) - set(prior_materials):
                         bpy.data.materials.remove(material)
-                    self.logger.info(
-                        "======================================================="
-                    )
-                    self.logger.info(
-                        "============== Setting Constraints ===================="
-                    )
-                    self.logger.info(
-                        "======================================================="
-                    )
+
+                    self.print_header("Setting Constraints")
 
                     for imported_object in imported_objects:
                         # props are parented so they should follow their root object.
@@ -605,15 +590,8 @@ class ImportPyrogenesisActor(bpy.types.Operator, bpy_extras.io_utils.ImportHelpe
                         )
 
                 if child.tag == "textures" and self.import_textures:
-                    self.logger.info(
-                        "======================================================="
-                    )
-                    self.logger.info(
-                        "============== Gathering Textures ====================="
-                    )
-                    self.logger.info(
-                        "======================================================="
-                    )
+                    self.print_header("Gathering Textures")
+
                     if len(child) > 0:
                         for texture in child:
                             imported_textures.append(texture)
@@ -626,15 +604,8 @@ class ImportPyrogenesisActor(bpy.types.Operator, bpy_extras.io_utils.ImportHelpe
                         or (self.import_depth > propDepth and self.import_depth > 0)
                     )
                 ):
-                    self.logger.info(
-                        "======================================================="
-                    )
-                    self.logger.info(
-                        "============== Gathering Parent Props ================="
-                    )
-                    self.logger.info(
-                        "======================================================="
-                    )
+                    self.print_header("Gathering Parent Props")
+
 
                     finalprops = imported_objects.copy()
                     if len(finalprops) > 0:
@@ -644,15 +615,7 @@ class ImportPyrogenesisActor(bpy.types.Operator, bpy_extras.io_utils.ImportHelpe
                                 continue
 
                             if hasattr(obj, "type") and obj.type == "ARMATURE":
-                                self.logger.info(
-                                    "======================================================="
-                                )
-                                self.logger.info(
-                                    "============== Gathering Armature Props ==============="
-                                )
-                                self.logger.info(
-                                    "======================================================="
-                                )
+                                self.print_header("Gathering Armature Props")
 
                                 for bone in obj.data.bones:
                                     if "prop." in bone.name:
@@ -712,9 +675,8 @@ class ImportPyrogenesisActor(bpy.types.Operator, bpy_extras.io_utils.ImportHelpe
                 self.assign_material_to_object(obj, material_object)
 
         for prop in imported_props:
-            self.logger.info("=======================================================")
-            self.logger.info("============== Gathering Props ========================")
-            self.logger.info("=======================================================")
+            self.print_header("Gathering Props")
+
             if prop.attrib["actor"] == "":
                 continue
 
@@ -751,3 +713,21 @@ class ImportPyrogenesisActor(bpy.types.Operator, bpy_extras.io_utils.ImportHelpe
                 return imported_object
 
         return None
+
+    def print_header(self, header_name):
+        MAX_LENGTH = 55  # Define the maximum length of the lines
+
+        header_line = f"============== {header_name} ============"
+        header_line = header_line.center(MAX_LENGTH, "=")
+
+        # Ensure the line length matches MAX_LENGTH
+        if len(header_line) > MAX_LENGTH:
+            header_line = header_line[:MAX_LENGTH]
+        else:
+            header_line = header_line.center(MAX_LENGTH, "=")
+
+        # Print the log lines
+        self.logger.info("=" * MAX_LENGTH)
+        self.logger.info(header_line)
+        self.logger.info("=" * MAX_LENGTH)
+        self.logger.info("")
