@@ -2,6 +2,8 @@
 # This file is part of 0 A.D.
 # SPDX-License-Identifier: GPL-2.0-or-later
 
+import logging
+
 
 class MaxColladaFixer:
     file_path = None
@@ -27,6 +29,7 @@ class MaxColladaFixer:
 
     def __init__(self, file_path=None):
         self.file_path = file_path
+        self.logger = logging.getLogger("PyrogenesisActorImporter." % __name__)
 
     def execute(self):
         import xml.etree.ElementTree as ET
@@ -37,7 +40,7 @@ class MaxColladaFixer:
         root = tree.getroot()
         new_elements = []
         for child in root:
-            print("Fixing Collada..." + child.tag)
+            self.logger.info("Fixing Collada..." + child.tag)
         for child in root[:]:
             if child.tag == self.collada_prefix + "library_images":
                 root.remove(child)
