@@ -21,9 +21,11 @@ blender --command extension build
 ## Installation
 
 1. Build or download the latest release of io_scene_pyrogenesis.zip
-2. In Blender, navigate to **Edit > Preferences... > Get Extensions** and in the dropdown menu in the top right corner select **Install from Disk...**
+2. In Blender, navigate to **Edit > Preferences... > Get Extensions** and in
+the dropdown menu in the top right corner select **Install from Disk...**
 
-You can now import pyrogenesis xml actor files with **File > Import > Pyrogenesis Actor (.xml)**.
+You can now import pyrogenesis xml actor files with
+**File > Import > Pyrogenesis Actor (.xml)**.
 
 ## Unsupported Features
 
