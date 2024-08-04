@@ -10,6 +10,7 @@ from . import ImportPyrogenesisActor
 # Script reloading (if the user calls 'Reload Scripts' from Blender)
 #
 
+
 def reload_package(module_dict_main):
     import importlib
     from pathlib import Path
@@ -26,11 +27,16 @@ def reload_package(module_dict_main):
 
     reload_package_recursive(Path(__file__).parent, module_dict_main)
 
+
 if "bpy" in locals():
     reload_package(locals())
 
+
 def menu_func_import(self, context):
-    self.layout.operator(ImportPyrogenesisActor.bl_idname, text='Pyrogenesis Actor (.xml)')
+    self.layout.operator(
+        ImportPyrogenesisActor.bl_idname, text="Pyrogenesis Actor (.xml)"
+    )
+
 
 def register():
     # bpy.utils.register_module(__name__)
@@ -46,5 +52,5 @@ def unregister():
     bpy.types.TOPBAR_MT_file_import.remove(menu_func_import)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     register()

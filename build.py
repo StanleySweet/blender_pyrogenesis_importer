@@ -3,9 +3,10 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 
 import os
-try: 
+
+try:
     import tomllib
-except ModuleNotFoundError: 
+except ModuleNotFoundError:
     import pip._vendor.tomli as tomllib
 
 import zipfile
@@ -19,11 +20,13 @@ def get_version():
 
 def build_archive():
     os.makedirs("dist", exist_ok=True)
-    with zipfile.ZipFile(os.path.join("dist", "io_scene_pyrogenesis-" + get_version() + ".zip"), mode="w") as archive:
+    with zipfile.ZipFile(
+        os.path.join("dist", "io_scene_pyrogenesis-" + get_version() + ".zip"), mode="w"
+    ) as archive:
         archive.write("io_scene_pyrogenesis/__init__.py")
         archive.write("io_scene_pyrogenesis/blender_manifest.toml")
         archive.write("LICENSE", arcname="io_scene_pyrogenesis/LICENSE")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     build_archive()

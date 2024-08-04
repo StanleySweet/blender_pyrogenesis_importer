@@ -2,23 +2,23 @@
 # This file is part of 0 A.D.
 # SPDX-License-Identifier: GPL-2.0-or-later
 
+
 class MaxColladaFixer:
     file_path = None
-    collada_prefix = '{http://www.collada.org/2005/11/COLLADASchema}'
+    collada_prefix = "{http://www.collada.org/2005/11/COLLADASchema}"
 
     def sortchildrenby(self, parent):
         parent[:] = sorted(parent, key=lambda child: child.tag)
 
-
     def indent(self, elem, level=0):
-        i = "\n" + level*"  "
+        i = "\n" + level * "  "
         if len(elem):
             if not elem.text or not elem.text.strip():
                 elem.text = i + "  "
             if not elem.tail or not elem.tail.strip():
                 elem.tail = i
             for elem in elem:
-                self.indent(elem, level+1)
+                self.indent(elem, level + 1)
             if not elem.tail or not elem.tail.strip():
                 elem.tail = i
         else:
@@ -39,53 +39,64 @@ class MaxColladaFixer:
         for child in root:
             print("Fixing Collada..." + child.tag)
         for child in root[:]:
-            if child.tag == self.collada_prefix + 'library_images':
+            if child.tag == self.collada_prefix + "library_images":
                 root.remove(child)
-                element = ET.Element(self.collada_prefix + 'library_images')
+                element = ET.Element(self.collada_prefix + "library_images")
                 new_elements.append(element)
                 continue
 
-            if child.tag == self.collada_prefix + 'library_materials':
+            if child.tag == self.collada_prefix + "library_materials":
                 root.remove(child)
 
                 # If there is no material no need to append it.
                 continue
 
-            if child.tag == self.collada_prefix + 'library_effects':
+            if child.tag == self.collada_prefix + "library_effects":
                 root.remove(child)
 
-                element = ET.Element(self.collada_prefix + 'library_effects')
+                element = ET.Element(self.collada_prefix + "library_effects")
                 new_elements.append(element)
                 continue
 
-            if child.tag == self.collada_prefix + 'library_visual_scenes':
+            if child.tag == self.collada_prefix + "library_visual_scenes":
                 for visual_scene in child:
                     for node in visual_scene:
                         for subchild in node:
-                            if subchild.tag == self.collada_prefix + 'instance_geometry':
+                            if (
+                                subchild.tag
+                                == self.collada_prefix + "instance_geometry"
+                            ):
                                 for binding in subchild:
-                                    if binding.tag == self.collada_prefix + 'bind_material':
+                                    if (
+                                        binding.tag
+                                        == self.collada_prefix + "bind_material"
+                                    ):
                                         subchild.remove(binding)
                                         break
-                            if subchild.tag == self.collada_prefix + 'instance_controller':
+                            if (
+                                subchild.tag
+                                == self.collada_prefix + "instance_controller"
+                            ):
                                 for binding in subchild:
-                                    if binding.tag == self.collada_prefix + 'bind_material':
+                                    if (
+                                        binding.tag
+                                        == self.collada_prefix + "bind_material"
+                                    ):
                                         subchild.remove(binding)
                                         break
                 continue
 
-            if child.tag == self.collada_prefix + 'asset':
+            if child.tag == self.collada_prefix + "asset":
                 for property in child:
-                    if property.tag == self.collada_prefix + 'modified':
+                    if property.tag == self.collada_prefix + "modified":
                         property.text = str(date.today())
 
         for element in new_elements:
             root.append(element)
 
-
         self.sortchildrenby(root)
         for child in root:
             self.sortchildrenby(child)
         self.indent(root)
-        tree.write(open(self.file_path, 'wb'), encoding='utf-8')
-        tree.write(open(self.file_path, 'wb'),encoding='utf-8')
+        tree.write(open(self.file_path, "wb"), encoding="utf-8")
+        tree.write(open(self.file_path, "wb"), encoding="utf-8")
