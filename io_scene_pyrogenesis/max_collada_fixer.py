@@ -29,7 +29,7 @@ class MaxColladaFixer:
 
     def __init__(self, file_path=None):
         self.file_path = file_path
-        self.logger = logging.getLogger("PyrogenesisActorImporter." % __name__)
+        self.logger = logging.getLogger(f"PyrogenesisActorImporter.{__name__}")
 
     def execute(self):
         import xml.etree.ElementTree as ET
