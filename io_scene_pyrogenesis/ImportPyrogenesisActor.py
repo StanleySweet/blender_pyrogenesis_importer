@@ -11,6 +11,7 @@ import os
 import random
 import xml.etree.ElementTree as ET
 
+
 class ImportPyrogenesisActor(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
     """Load a Pyrogenesis actor file"""
 
@@ -338,7 +339,6 @@ class ImportPyrogenesisActor(bpy.types.Operator, bpy_extras.io_utils.ImportHelpe
     def parse_actor(
         self, root, proppoint="root", parentprops=[], rootObj=None, propDepth=0
     ):
-
         meshprops = []
         imported_props = []
         imported_textures = []
@@ -595,7 +595,6 @@ class ImportPyrogenesisActor(bpy.types.Operator, bpy_extras.io_utils.ImportHelpe
                     )
                 ):
                     self.print_header("Gathering Parent Props")
-
 
                     finalprops = imported_objects.copy()
                     if len(finalprops) > 0:
