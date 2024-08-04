@@ -20,5 +20,5 @@ into other software like Godot, or Sketchfab, or as GLTF.
 
 ## Usage
 
-Given an actor XML file, the importer will be able to create a whole scene in 
+Given an actor XML file, the importer will be able to create a whole scene in
 Blender with no user intervention.
