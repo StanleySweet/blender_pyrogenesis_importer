@@ -5,11 +5,6 @@
 import bpy
 from . import ImportPyrogenesisActor
 
-# 'https://blender.stackexchange.com/questions/39303/blender-script-import-model-and-render-it'
-#
-# Script reloading (if the user calls 'Reload Scripts' from Blender)
-#
-
 
 def reload_package(module_dict_main):
     import importlib
@@ -39,16 +34,12 @@ def menu_func_import(self, context):
 
 
 def register():
-    # bpy.utils.register_module(__name__)
     bpy.utils.register_class(ImportPyrogenesisActor)
-    # add to the export / import menu
     bpy.types.TOPBAR_MT_file_import.append(menu_func_import)
 
 
 def unregister():
-    # bpy.utils.unregister_module(__name__)
     bpy.utils.unregister_class(ImportPyrogenesisActor)
-    # remove from the export / import menu
     bpy.types.TOPBAR_MT_file_import.remove(menu_func_import)
 
 
