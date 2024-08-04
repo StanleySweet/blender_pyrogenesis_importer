@@ -24,8 +24,8 @@ def build_archive():
         os.path.join("dist", "io_scene_pyrogenesis-" + get_version() + ".zip"), mode="w"
     ) as archive:
         archive.write("io_scene_pyrogenesis/__init__.py")
-        archive.write("io_scene_pyrogenesis/MaxColladaFixer.py")
-        archive.write("io_scene_pyrogenesis/ImportPyrogenesisActor.py")
+        archive.write("io_scene_pyrogenesis/max_collada_fixer.py")
+        archive.write("io_scene_pyrogenesis/import_pyrogenesis_actor.py")
         archive.write("io_scene_pyrogenesis/blender_manifest.toml")
         archive.write("LICENSE", arcname="io_scene_pyrogenesis/LICENSE")
 

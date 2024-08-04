@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 
 import bpy
-from . import ImportPyrogenesisActor
+from import_pyrogenesis_actor import ImportPyrogenesisActor
 
 
 def reload_package(module_dict_main):
